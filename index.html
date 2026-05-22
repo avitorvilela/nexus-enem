@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente ENEM IA — Pare de errar as mesmas questões</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #060f1e;
+    --navy-mid: #0d1e38;
+    --navy-light: #152a4a;
+    --blue: #1a5cff;
+    --blue-light: #4d82ff;
+    --blue-pale: #d4e1ff;
+    --gold: #f5b731;
+    --gold-light: #fad06b;
+    --gold-pale: #fff8e5;
+    --white: #ffffff;
+    --off-white: #f4f6fb;
+    --text-muted: #6b7a99;
+    --text-body: #2a3550;
+    --green: #00b87a;
+    --green-pale: #e0f8ef;
+    --red-pale: #ffeaea;
+    --red: #e03e3e;
+    --border: rgba(26,92,255,0.12);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--text-body);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 { font-family: 'Syne', sans-serif; line-height: 1.15; }
+
+  a { color: inherit; text-decoration: none; }
+
+  img { max-width: 100%; display: block; }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 700px; margin: 0 auto; padding: 0 1.5rem; }
+  .section { padding: 5rem 0; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(245,183,49,.45); }
+    70%  { box-shadow: 0 0 0 14px rgba(245,183,49,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,183,49,0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .animate { opacity: 0; animation: fadeUp .65s ease forwards; }
+  .d1 { animation-delay: .05s; }
+  .d2 { animation-delay: .15s; }
+  .d3 { animation-delay: .25s; }
+  .d4 { animation-delay: .35s; }
+  .d5 { animation-delay: .45s; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--navy);
+    color: var(--gold);
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    padding: .6rem 1rem;
+    letter-spacing: .3px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--navy);
+    padding: 5rem 0 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(26,92,255,.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(26,92,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,92,255,.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .hero .container { position: relative; z-index: 1; text-align: center; }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(26,92,255,.18);
+    border: 1px solid rgba(77,130,255,.3);
+    color: var(--blue-light);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 1.5rem;
+    letter-spacing: .4px;
+  }
+  .dot-live {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse-ring 2s ease infinite;
+    flex-shrink: 0;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--white);
+    margin-bottom: 1.25rem;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero h1 em {
+    color: var(--gold);
+    font-style: normal;
+    position: relative;
+  }
+  .hero h1 em::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -3px;
+    height: 2px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--blue-pale);
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.75;
+  }
+
+  .cta-primary {
+    display: inline-block;
+    background: var(--gold);
+    color: #1a0a00;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 1.1rem 2.5rem;
+    border-radius: 99px;
+    border: none;
+    cursor: pointer;
+    transition: transform .15s, background .15s;
+    animation: pulse-ring 2.5s ease infinite;
+    text-decoration: none;
+  }
+  .cta-primary:hover { background: var(--gold-light); transform: scale(1.03); }
+  .cta-primary:active { transform: scale(.98); }
+
+  .hero-trust {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(212,225,255,.65);
+  }
+  .trust-item svg { width: 15px; height: 15px; fill: var(--green); flex-shrink: 0; }
+
+  /* ── CHAT MOCKUP ── */
+  .chat-wrap {
+    max-width: 560px;
+    margin: 3.5rem auto 0;
+    background: var(--navy-mid);
+    border: 1px solid rgba(77,130,255,.2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: float 4s ease-in-out infinite;
+  }
+  .chat-topbar {
+    background: var(--navy-light);
+    padding: .65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(77,130,255,.15);
+  }
+  .chat-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .chat-dot.r { background: #ff5f57; }
+  .chat-dot.y { background: #febc2e; }
+  .chat-dot.g { background: #28c840; }
+  .chat-title { font-size: 12px; color: rgba(212,225,255,.5); margin-left: auto; margin-right: auto; font-weight: 500; }
+  .chat-body { padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+  .bubble {
+    padding: .75rem 1rem;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 88%;
+  }
+  .bubble.user {
+    background: var(--blue);
+    color: var(--white);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.ai {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(77,130,255,.2);
+    color: var(--blue-pale);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.ai strong { color: var(--gold); }
+  .typing {
+    display: flex; gap: 5px; align-items: center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(77,130,255,.2);
+    padding: .75rem 1rem;
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+  .typing span {
+    width: 7px; height: 7px;
+    background: rgba(212,225,255,.4);
+    border-radius: 50%;
+    animation: blink 1.2s ease infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+
+  /* ── PAIN ── */
+  .pain-section { background: var(--white); }
+  .pain-header { text-align: center; margin-bottom: 2.5rem; }
+  .pain-header h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); color: var(--navy); margin-bottom: .5rem; }
+  .pain-header p { color: var(--text-muted); font-size: 1rem; }
+
+  .pain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+  .pain-card {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--red-pale);
+    border: 1px solid rgba(224,62,62,.12);
+    border-radius: var(--radius-sm);
+    padding: 1.1rem 1.25rem;
+  }
+  .pain-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(224,62,62,.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--red);
+    font-size: 16px; font-weight: 700;
+    line-height: 1;
+  }
+  .pain-card p { font-size: 14px; color: #4a2020; line-height: 1.6; }
+  .pain-card p strong { color: #2a0f0f; }
+
+  /* ── FEATURES ── */
+  .features-section { background: var(--off-white); }
+  .features-header { text-align: center; margin-bottom: 2.5rem; }
+  .features-header .eyebrow {
+    display: inline-block;
+    background: var(--blue-pale);
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 99px;
+    margin-bottom: .75rem;
+    letter-spacing: .4px;
+  }
+  .features-header h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); color: var(--navy); margin-bottom: .5rem; }
+  .features-header p { color: var(--text-muted); max-width: 480px; margin: 0 auto; }
+
+  .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .feat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .feat-card:hover { border-color: rgba(26,92,255,.3); transform: translateY(-3px); }
+  .feat-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 22px;
+  }
+  .fi-blue { background: var(--blue-pale); }
+  .fi-green { background: var(--green-pale); }
+  .fi-gold { background: var(--gold-pale); }
+  .fi-navy { background: rgba(6,15,30,.08); }
+  .feat-card h3 { font-size: 1rem; color: var(--navy); margin-bottom: .35rem; }
+  .feat-card p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
+
+  /* ── STAR FEATURE ── */
+  .star-feature {
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: center;
+    margin-top: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .star-feature::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(245,183,49,.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .star-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(245,183,49,.15);
+    border: 1px solid rgba(245,183,49,.3);
+    color: var(--gold);
+    font-size: 11px; font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 99px;
+    margin-bottom: .75rem;
+    letter-spacing: .5px;
+  }
+  .star-feature h3 { font-size: 1.4rem; color: var(--white); margin-bottom: .6rem; line-height: 1.25; }
+  .star-feature p { font-size: 14.5px; color: var(--blue-pale); line-height: 1.75; }
+  .star-icon-big {
+    font-size: 64px; line-height: 1;
+    opacity: .18;
+    position: absolute;
+    right: 2rem; top: 50%;
+    transform: translateY(-50%);
+  }
+
+  @media (max-width: 560px) {
+    .star-feature { grid-template-columns: 1fr; }
+    .star-icon-big { display: none; }
+  }
+
+  /* ── PROOF ── */
+  .proof-section { background: var(--white); }
+  .proof-header { text-align: center; margin-bottom: 2.5rem; }
+  .proof-header h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); color: var(--navy); }
+  .proof-header p { color: var(--text-muted); margin-top: .4rem; }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .stat-card {
+    background: var(--navy);
+    border-radius: var(--radius-sm);
+    padding: 1.5rem 1rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem; font-weight: 800;
+    color: var(--gold);
+    display: block;
+  }
+  .stat-lbl { font-size: 13px; color: var(--blue-pale); margin-top: 4px; }
+
+  .testimonials { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .testi-card {
+    background: var(--off-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+  .stars-row { color: var(--gold); font-size: 14px; margin-bottom: .65rem; }
+  .testi-text { font-size: 14px; color: var(--text-body); line-height: 1.65; font-style: italic; margin-bottom: .75rem; }
+  .testi-author { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .testi-role { font-size: 12px; color: var(--text-muted); }
+
+  /* ── PRICE ── */
+  .price-section { background: var(--navy); }
+  .price-inner {
+    max-width: 500px; margin: 0 auto;
+    text-align: center;
+  }
+  .price-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--blue-light);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+  .price-section h2 { font-size: clamp(1.6rem, 3.5vw, 2rem); color: var(--white); margin-bottom: .5rem; }
+  .price-section .sub { color: var(--blue-pale); font-size: 15px; margin-bottom: 2rem; }
+
+  .price-card {
+    background: var(--navy-mid);
+    border: 2px solid rgba(26,92,255,.3);
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .price-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--gold));
+  }
+  .popular-badge {
+    position: absolute; top: 1.25rem; right: 1.25rem;
+    background: var(--gold);
+    color: #1a0a00;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 99px;
+    letter-spacing: .3px;
+  }
+  .price-old-val {
+    font-size: 1rem; color: rgba(212,225,255,.4);
+    text-decoration: line-through;
+    margin-bottom: .25rem;
+  }
+  .price-main {
+    font-family: 'Syne', sans-serif;
+    font-size: 4rem; font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: .25rem;
+  }
+  .price-note { font-size: 13px; color: rgba(212,225,255,.55); margin-bottom: 2rem; }
+
+  .checklist { list-style: none; text-align: left; margin-bottom: 2rem; display: flex; flex-direction: column; gap: .6rem; }
+  .checklist li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px; color: var(--blue-pale);
+    line-height: 1.5;
+  }
+  .check-icon {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(0,184,122,.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .check-icon svg { width: 11px; height: 11px; fill: var(--green); }
+
+  .cta-price {
+    display: block; width: 100%;
+    background: var(--gold);
+    color: #1a0a00;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    padding: 1.1rem;
+    border-radius: 99px;
+    border: none; cursor: pointer;
+    transition: background .15s, transform .15s;
+    margin-bottom: 1rem;
+  }
+  .cta-price:hover { background: var(--gold-light); transform: scale(1.02); }
+  .guarantee-line {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-size: 13px; color: rgba(212,225,255,.5);
+  }
+  .guarantee-line svg { width: 15px; height: 15px; fill: var(--green); flex-shrink: 0; }
+
+  /* ── FAQ ── */
+  .faq-section { background: var(--off-white); }
+  .faq-header { text-align: center; margin-bottom: 2.5rem; }
+  .faq-header h2 { font-size: clamp(1.5rem, 3vw, 2rem); color: var(--navy); }
+
+  .faq-list { max-width: 580px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 0;
+  }
+  .faq-item:first-child { border-top: 1px solid var(--border); }
+  .faq-q {
+    font-family: 'Syne', sans-serif;
+    font-size: 15.5px; font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    user-select: none;
+  }
+  .faq-arrow {
+    width: 22px; height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform .25s;
+    color: var(--blue);
+    font-size: 14px; line-height: 1;
+  }
+  .faq-a {
+    font-size: 14px; color: var(--text-muted);
+    line-height: 1.7;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s ease, padding-top .35s ease;
+    padding-top: 0;
+  }
+  .faq-item.open .faq-a { max-height: 200px; padding-top: .75rem; }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+  /* ── FINAL CTA ── */
+  .final-section {
+    background: var(--white);
+    text-align: center;
+  }
+  .final-section h2 { font-size: clamp(1.7rem, 4vw, 2.4rem); color: var(--navy); margin-bottom: .75rem; }
+  .final-section p { font-size: 15.5px; color: var(--text-muted); max-width: 480px; margin: 0 auto 2rem; line-height: 1.75; }
+  .cta-final {
+    display: inline-block;
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem; font-weight: 700;
+    padding: 1.1rem 2.5rem;
+    border-radius: 99px;
+    border: none; cursor: pointer;
+    transition: background .15s, transform .15s;
+    margin-bottom: 1.25rem;
+  }
+  .cta-final:hover { background: var(--navy-mid); transform: scale(1.02); }
+  .final-micro { font-size: 13px; color: var(--text-muted); }
+  .final-micro strong { color: var(--navy); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy);
+    text-align: center;
+    padding: 1.75rem;
+    font-size: 12px;
+    color: rgba(212,225,255,.35);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 560px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .hero { padding: 3.5rem 0 3rem; }
+    .section { padding: 3.5rem 0; }
+    .price-main { font-size: 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  🔥 Mais de 4.800 estudantes já estão usando — Acesso imediato após a compra
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="container">
+    <div class="animate d1">
+      <div class="hero-eyebrow">
+        <span class="dot-live"></span>
+        Agente de IA especializado em ENEM
+      </div>
+    </div>
+    <h1 class="animate d2">
+      Pare de errar as mesmas questões.<br>
+      Entenda <em>exatamente o que faltou.</em>
+    </h1>
+    <p class="hero-sub animate d3">
+      O único agente de IA que analisa o seu raciocínio — não só a resposta — e te diz o passo exato que te fez perder a questão. Funciona no ChatGPT gratuito.
+    </p>
+    <div class="animate d4">
+      <a href="#preco" class="cta-primary">Quero meu acesso por R$&nbsp;27 →</a>
+    </div>
+    <div class="hero-trust animate d5">
+      <span class="trust-item">
+        <svg viewBox="0 0 20 20"><path d="M10 1.5l2.5 5.1 5.6.8-4.1 4 1 5.6L10 14.3l-5 2.7 1-5.6L2 7.4l5.6-.8z"/></svg>
+        ChatGPT gratuito
+      </span>
+      <span class="trust-item">
+        <svg viewBox="0 0 20 20"><path d="M10 1.5l2.5 5.1 5.6.8-4.1 4 1 5.6L10 14.3l-5 2.7 1-5.6L2 7.4l5.6-.8z"/></svg>
+        Acesso vitalício
+      </span>
+      <span class="trust-item">
+        <svg viewBox="0 0 20 20"><path d="M10 1.5l2.5 5.1 5.6.8-4.1 4 1 5.6L10 14.3l-5 2.7 1-5.6L2 7.4l5.6-.8z"/></svg>
+        7 dias de garantia
+      </span>
+    </div>
+
+    <!-- Chat mockup -->
+    <div class="chat-wrap animate d5" style="animation-delay:.55s">
+      <div class="chat-topbar">
+        <span class="chat-dot r"></span>
+        <span class="chat-dot y"></span>
+        <span class="chat-dot g"></span>
+        <span class="chat-title">Agente ENEM IA — ChatGPT</span>
+      </div>
+      <div class="chat-body">
+        <div class="bubble user">Marquei a B achando que era sobre pressão osmótica, mas era a C. Não entendi onde errei.</div>
+        <div class="bubble ai">
+          <strong>Seu raciocínio estava certo aqui:</strong> você identificou corretamente que a questão envolvia diferença de concentração entre soluções — isso é osmose e você sabia disso.<br><br>
+          O que faltou: a alternativa C fala em <em>pressão osmótica resultante</em>, não apenas no processo. A B descreve o movimento da água, mas não nomeia a força. Uma palavra mudou o sentido.<br><br>
+          Quer mais 3 questões parecidas pra fixar essa distinção?
+        </div>
+        <div class="typing"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOR -->
+<section class="pain-section section">
+  <div class="container">
+    <div class="pain-header">
+      <h2>Você se identifica com isso?</h2>
+      <p>Se sim, você está no lugar certo.</p>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">✕</div>
+        <p>Você estuda horas, faz questões, <strong>mas os erros se repetem</strong> — e você não sabe por quê.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">✕</div>
+        <p>Você olha o gabarito, entende a resposta certa, <strong>mas na próxima errou de novo</strong> do mesmo jeito.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">✕</div>
+        <p>Seu raciocínio estava quase certo, mas <strong>não tem ninguém pra te dizer o que faltou.</strong></p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">✕</div>
+        <p>Você <strong>não tem dinheiro pra cursinho</strong> — ou já pagou e ainda não viu resultado.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section section">
+  <div class="container">
+    <div class="features-header">
+      <div class="eyebrow">A SOLUÇÃO</div>
+      <h2>Um tutor de IA que conhece o ENEM de ponta a ponta</h2>
+      <p>Funciona direto no ChatGPT gratuito. Sem mensalidade, sem app pra instalar.</p>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-blue">🗂️</div>
+        <h3>Banco gigante de questões</h3>
+        <p>Anos de ENEM organizados por área, tema e dificuldade. Treine o que realmente importa pra sua nota.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-green">🎯</div>
+        <h3>Foco nos seus pontos fracos</h3>
+        <p>O agente identifica onde você mais erra e monta trilhas de estudo personalizadas pra você evoluir rápido.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-gold">⏰</div>
+        <h3>Disponível 24 horas</h3>
+        <p>Às 23h antes da prova com dúvida de química? O agente está lá. Sem esperar professor responder.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-navy">💬</div>
+        <h3>ChatGPT gratuito</h3>
+        <p>Não precisa pagar nada além dos R$ 27 de acesso. Funciona 100% no plano free do ChatGPT.</p>
+      </div>
+    </div>
+
+    <div class="star-feature">
+      <div>
+        <div class="star-badge">⭐ Diferencial exclusivo — nenhum simulado faz isso</div>
+        <h3>Você marcou "quase certo"?<br>O agente te explica o que faltou.</h3>
+        <p>Quando seu raciocínio estava correto mas você errou a alternativa, o agente reconhece isso. Ele mostra exatamente onde você acertou — e o único passo que estava faltando. Isso elimina o ciclo de "estudei mas continuo errando" de vez.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROVA SOCIAL -->
+<section class="proof-section section">
+  <div class="container">
+    <div class="proof-header">
+      <h2>Quem já usou, não volta atrás</h2>
+      <p>Resultados reais de quem passou pelo mesmo ciclo que você.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-num">+4.800</span>
+        <span class="stat-lbl">estudantes ativos</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">87%</span>
+        <span class="stat-lbl">melhora em 30 dias</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">R$ 0</span>
+        <span class="stat-lbl">de mensalidade</span>
+      </div>
+    </div>
+
+    <div class="testimonials">
+      <div class="testi-card">
+        <div class="stars-row">★★★★★</div>
+        <p class="testi-text">"Errava redação toda vez sem entender o porquê. O agente me mostrou exatamente onde meu argumento quebrava. Tirei 820 na redação."</p>
+        <p class="testi-author">Mariana S.</p>
+        <p class="testi-role">19 anos — aprovada em Jornalismo</p>
+      </div>
+      <div class="testi-card">
+        <div class="stars-row">★★★★★</div>
+        <p class="testi-text">"Tentei 3 anos seguidos. No quarto, usei o agente. Finalmente entendi por que errava matemática — era um passo específico que eu pulava."</p>
+        <p class="testi-author">Lucas M.</p>
+        <p class="testi-role">22 anos — aprovado em Engenharia</p>
+      </div>
+      <div class="testi-card">
+        <div class="stars-row">★★★★★</div>
+        <p class="testi-text">"Uso às 23h quando bate o pânico. O agente não julga, não se cansa e explica do zero quantas vezes precisar."</p>
+        <p class="testi-author">Thaís R.</p>
+        <p class="testi-role">17 anos — aprovada em Medicina Veterinária</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREÇO -->
+<section class="price-section section" id="preco">
+  <div class="container">
+    <div class="price-inner">
+      <p class="price-label">Investimento</p>
+      <h2>Acesso completo.<br>Uma vez. Pra sempre.</h2>
+      <p class="sub">Sem mensalidade. Sem pegadinha. Você paga uma vez e usa enquanto precisar.</p>
+
+      <div class="price-card">
+        <span class="popular-badge">Mais vendido</span>
+        <p class="price-old-val">De R$ 97,00</p>
+        <p class="price-main">R$ 27</p>
+        <p class="price-note">pagamento único · acesso imediato · vitalício</p>
+
+        <ul class="checklist">
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Agente completo configurado e pronto pra usar
+          </li>
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Banco de questões do ENEM (todos os anos)
+          </li>
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Análise de raciocínio parcialmente correto
+          </li>
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Trilhas de estudo personalizadas por área fraca
+          </li>
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Atualizações incluídas · Suporte via WhatsApp
+          </li>
+          <li>
+            <span class="check-icon"><svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg></span>
+            Funciona no ChatGPT gratuito — sem custo extra
+          </li>
+        </ul>
+
+        <button class="cta-price" onclick="window.location.href='https://pay.kiwify.com.br/8okUfA2'">
+          Garantir meu acesso por R$ 27 →
+        </button>
+        <div class="guarantee-line">
+          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.5 5.1 5.6.8-4.1 4 1 5.6L10 14.3l-5 2.7 1-5.6L2 7.4l5.6-.8z"/></svg>
+          7 dias de garantia incondicional — devolvemos 100% sem perguntas
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section section">
+  <div class="container">
+    <div class="faq-header">
+      <h2>Perguntas frequentes</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Precisa pagar o ChatGPT Plus?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Não. O agente funciona perfeitamente no plano gratuito do ChatGPT. Você só paga os R$ 27 do acesso ao agente — uma única vez, pra sempre.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Como recebo o agente após a compra?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Imediatamente após a compra, você recebe por e-mail o link de acesso e um tutorial de 5 minutos pra ativar tudo. É simples e rápido.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Serve para outros vestibulares além do ENEM?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">O foco é o ENEM, mas como o conteúdo é o mesmo da maioria dos vestibulares estaduais (Fuvest, Unicamp, UNESP), você usa pra todos eles sem problema.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          E se eu não gostar?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">7 dias de garantia incondicional. Pediu o reembolso, devolvemos 100% do valor sem perguntas. Você não tem nenhum risco.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          O agente funciona no celular?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Sim. O ChatGPT tem app para Android e iOS. Você usa o agente de qualquer lugar, inclusive na fila do banco ou no ônibus.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-section section">
+  <div class="container">
+    <h2>Seu vestibular não vai esperar você se decidir.</h2>
+    <p>Cada semana sem entender onde você erra é uma semana jogada fora. Por R$ 27 — o preço de dois lanches — você tem um tutor de IA disponível agora.</p>
+    <a href="#preco" class="cta-final">Quero passar no vestibular →</a>
+    <p class="final-micro">
+      <strong>Acesso imediato</strong> · Sem mensalidade · 7 dias de garantia
+    </p>
+  </div>
+</section>
+
+<footer>
+  © 2025 Agente ENEM IA · Todos os direitos reservados · Feito para quem quer passar de primeira
+</footer>
+
+<script>
+  function toggleFaq(el) {
+    const item = el.closest('.faq-item');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  }
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+
+  // Intersection observer for scroll animations
+  const animEls = document.querySelectorAll('.feat-card, .pain-card, .testi-card, .stat-card');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.animation = `fadeUp .55s ease ${i * 0.07}s forwards`;
+        entry.target.style.opacity = '0';
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  animEls.forEach(el => obs.observe(el));
+</script>
+
+</body>
+</html>
